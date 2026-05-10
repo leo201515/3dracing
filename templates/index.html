@@ -101,7 +101,7 @@ let bmwSrc = null, lamboSrc = null;
 let bmwOffY = 0, lamboOffY = 0;
 
 const L = 5, LW = 3.6, HW = L * LW / 2;
-const MXSPD = 2.0, ACC = 0.02, BRK = 0.03, FRIC = 0.99;
+const MXSPD = 2.4, ACC = 0.018, BRK = 0.025, FRIC = 0.985;
 const TS = 300;
 
 let speed = 0, score = 0, hs = parseInt(localStorage.getItem('rhs')) || 0;
@@ -345,9 +345,9 @@ function startGame() {
   if (player) scene.remove(player);
   player = createCar(curCar);
   scene.add(player);
-  for (let i = 0; i < 4; i++) spawnTraffic();
+  for (let i = 0; i < 6; i++) spawnTraffic();
   document.getElementById('menu').style.display = 'none';
-  document.getElementById('lapDisplay').textContent = '0 / 3';
+  document.getElementById('lapDisplay').textContent = '0 / 5';
 }
 
 document.getElementById('startBtn').addEventListener('click', startGame);
@@ -373,8 +373,8 @@ function update() {
     else if (k['ArrowDown'] || k['s'] || k['S']) speed = Math.max(speed - BRK, 0);
     else { speed *= FRIC; if (speed < 0.01) speed = 0; }
     mul = 1;
-    if ((k[' '] || k['Space']) && nitro > 0 && speed > 0.1) { mul = 1.7; nitro = Math.max(0, nitro - 0.4); }
-    else nitro = Math.min(100, nitro + 0.1);
+    if ((k[' '] || k['Space']) && nitro > 0 && speed > 0.1) { mul = 1.5; nitro = Math.max(0, nitro - 0.6); }
+    else nitro = Math.min(100, nitro + 0.06);
     let steer = 0;
     if (k['ArrowLeft'] || k['a'] || k['A']) steer = -1;
     else if (k['ArrowRight'] || k['d'] || k['D']) steer = 1;
@@ -387,7 +387,7 @@ function update() {
     if (progress < 0.1 && lastLP > 0.9) {
       lap++; lastLP = 0;
       document.getElementById('lapDisplay').textContent = `${Math.min(lap, 3)} / 3`;
-      if (lap >= 3) { gameOver = true; showMenu('YOU WIN!', `Score: ${score}`); return; }
+      if (lap >= 5) { gameOver = true; showMenu('YOU WIN!', `Score: ${score}`); return; }
     }
     lastLP = progress;
     const pt = curve.getPoint(progress);
@@ -403,7 +403,7 @@ function update() {
     player.rotation.x = Math.sin(Date.now() * 0.008) * 0.006 * (speed / MXSPD);
 
     for (const t of traffic) {
-      t.prog = (t.prog + t.speed * dt / curveLen) % 1;
+      t.prog = (t.prog + t.speed * dt * 30 / curveLen) % 1;
       const tp = curve.getPoint(t.prog);
       const tt = curve.getTangent(t.prog);
       const tn = new THREE.Vector3(-tt.z, 0, tt.x).normalize();
@@ -412,7 +412,7 @@ function update() {
       t.mesh.position.z = tp2.z;
       t.mesh.rotation.y = Math.atan2(tt.x, tt.z);
       const dx = tp2.x - cp.x, dz = tp2.z - cp.z;
-      if (Math.abs(dx) < 1.3 && Math.abs(dz) < 2.3 && speed > 0.1) {
+      if (Math.abs(dx) < 1.6 && Math.abs(dz) < 2.8 && speed > 0.05) {
         gameOver = true; showMenu('CRASH!', `Score: ${score}`); return;
       }
     }
@@ -423,7 +423,7 @@ function update() {
       return true;
     });
     spawnT += dt;
-    if (spawnT > 2 && traffic.length < 6) { spawnT = 0; spawnTraffic(); }
+    if (spawnT > 1.2 && traffic.length < 10) { spawnT = 0; spawnTraffic(); }
     score += Math.floor(speed * 10 * dt);
     if (score > hs) { hs = score; localStorage.setItem('rhs', hs); }
     document.getElementById('speedDisplay').textContent = Math.floor(speed * mul * 130);
@@ -447,7 +447,7 @@ function showMenu(title, desc) {
 }
 
 function spawnTraffic() {
-  if (gameOver || traffic.length > 6) return;
+  if (gameOver || traffic.length > 10) return;
   const prog = (progress + 0.15 + Math.random() * 0.5) % 1;
   for (const t of traffic) {
     const d = Math.abs(t.prog - prog);
@@ -466,7 +466,7 @@ function spawnTraffic() {
   car.position.z = pos.z;
   car.rotation.y = Math.atan2(tg.x, tg.z);
   trafficGroup.add(car);
-  traffic.push({ mesh: car, prog, lat, speed: 0.1 + Math.random() * 0.25 });
+  traffic.push({ mesh: car, prog, lat, speed: 1.2 + Math.random() * 0.6 });
 }
 
 update();
